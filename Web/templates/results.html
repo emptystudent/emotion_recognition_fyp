@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quiz Results</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <h1>Quiz Results</h1>
+    <p>Total Questions: {{ total }}</p>
+    <p>Correct Answers: {{ correct }}</p>
+    <p>Accuracy: {{ accuracy }}%</p>
+    
+    <canvas id="resultsChart" width="400" height="200"></canvas>
+    
+    <script>
+        var ctx = document.getElementById('resultsChart').getContext('2d');
+        var chart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: {{ chart_data.classes|tojson }},
+                datasets: [{
+                    label: 'Answered Count',
+                    data: {{ chart_data.counts|tojson }},
+                    backgroundColor: 'rgba(54, 162, 235, 0.5)',
+                    borderColor: 'rgba(54, 162, 235, 1)',
+                    borderWidth: 1
+                }, {
+                    label: 'Correct Answer Percentage',
+                    data: {{ chart_data.correct_percent|tojson }},
+                    backgroundColor: 'rgba(75, 192, 192, 0.5)',
+                    borderColor: 'rgba(75, 192, 192, 1)',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                scales: {
+                    y: {
+                        beginAtZero: true
+                    }
+                }
+            }
+        });
+    </script>
+</body>
+</html>

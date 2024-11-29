@@ -1,0 +1,546 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Emotion Recognition Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        .container {
+            position: relative;
+            width: 100%;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .chart-container {
+            margin: 20px auto;
+            height: 400px;
+            width: 80%;
+            max-width: 1000px;
+            position: relative;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        #accuracyChart {
+            width: 100% !important;
+            height: 100% !important;
+        }
+        .tabs {
+            margin: 20px 0;
+            border-bottom: 2px solid #ddd;
+        }
+        .tab-button {
+            padding: 10px 20px;
+            margin-right: 5px;
+            border: none;
+            background: none;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        .tab-button.active {
+            border-bottom: 2px solid #007bff;
+            color: #007bff;
+        }
+        .tab-content {
+            display: none;
+            margin-top: 20px;
+        }
+        .tab-content.active {
+            display: block;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        th {
+            background-color: #f5f5f5;
+        }
+        .delete-btn {
+            padding: 5px 10px;
+            background-color: #ff4444;
+            color: white;
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+        }
+        .delete-btn:hover {
+            background-color: #cc0000;
+        }
+        .header-section {
+            position: relative;
+            width: 100%;
+            text-align: center;
+            padding-top: 40px;
+            margin-bottom: 30px;
+        }
+        .back-button {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            padding: 10px 20px;
+            background-color: #dc3545;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+            font-weight: bold;
+            font-size: 16px;
+            width: fit-content;
+            height: fit-content;
+            line-height: 1.5;
+            text-align: center;
+            z-index: 1000;
+            box-shadow: none;
+            border: none;
+        }
+        .back-button:hover {
+            background-color: #c82333;
+            text-decoration: none;
+            color: white;
+        }
+        .content {
+            margin-top: 20px;
+        }
+        h1 {
+            margin: 0;
+            text-align: center;
+            font-size: 24px;
+            padding-top: 20px;
+        }
+        .clear-all-container {
+            margin-top: 20px;
+            text-align: right;
+        }
+        .clear-all-btn {
+            padding: 10px 20px;
+            background-color: #dc3545;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        .clear-all-btn:hover {
+            background-color: #c82333;
+        }
+        .filter-section {
+            background-color: #f8f9fa;
+            padding: 20px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+        .filter-row {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 15px;
+        }
+        .date-filter {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .date-filter input {
+            padding: 5px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        .emotion-filter {
+            flex-grow: 1;
+        }
+        .emotion-checkboxes {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-top: 5px;
+        }
+        .emotion-checkboxes label {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        .apply-btn {
+            padding: 8px 20px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            align-self: flex-end;
+        }
+        .apply-btn:hover {
+            background-color: #0056b3;
+        }
+        .reset-btn {
+            padding: 8px 20px;
+            background-color: #6c757d;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            align-self: flex-end;
+        }
+        .reset-btn:hover {
+            background-color: #5a6268;
+        }
+        .button-group {
+            display: flex;
+            gap: 10px;
+            align-self: flex-end;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header-section">
+            <a href="/" class="back-button">Back to Main Page</a>
+            <h1>Emotion Recognition Test History</h1>
+        </div>
+        
+        <div class="filter-section">
+            <div class="filter-row">
+                <div class="date-filter">
+                    <label>Start Date:</label>
+                    <input type="date" id="startDate">
+                </div>
+                <div class="date-filter">
+                    <label>End Date:</label>
+                    <input type="date" id="endDate">
+                </div>
+            </div>
+            <div class="filter-row">
+                <div class="emotion-filter">
+                    <label>Emotions:</label>
+                    <div class="emotion-checkboxes">
+                        {% for emotion in ['anger', 'disgust', 'fear', 'joy', 'neutral', 'sadness', 'surprise'] %}
+                        <label>
+                            <input type="checkbox" name="emotions" value="{{ emotion }}">
+                            {{ emotion|capitalize }}
+                        </label>
+                        {% endfor %}
+                    </div>
+                </div>
+                <div class="button-group">
+                    <button class="reset-btn" onclick="resetFilters()">Reset</button>
+                    <button class="apply-btn" onclick="applyFilters()">Apply</button>
+                </div>
+            </div>
+        </div>
+        
+        <div class="content">
+            <div class="chart-container">
+                <canvas id="accuracyChart"></canvas>
+            </div>
+            
+            <div class="tabs">
+                <button class="tab-button active" onclick="showTab('accuracy')">Accuracy View</button>
+                <button class="tab-button" onclick="showTab('questions')">Question Count View</button>
+            </div>
+
+            <div id="accuracy-tab" class="tab-content active">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Test Taken</th>
+                            <th>Overall Accuracy</th>
+                            <th>Anger</th>
+                            <th>Disgust</th>
+                            <th>Fear</th>
+                            <th>Joy</th>
+                            <th>Neutral</th>
+                            <th>Sadness</th>
+                            <th>Surprise</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for test in stats.history %}
+                        <tr>
+                            <td>{{ test.test_taken }}</td>
+                            <td>{{ "%.1f"|format(test.overall_accuracy) }}%</td>
+                            <td>{{ "%.1f"|format(test.emotion_accuracies.anger) }}%</td>
+                            <td>{{ "%.1f"|format(test.emotion_accuracies.disgust) }}%</td>
+                            <td>{{ "%.1f"|format(test.emotion_accuracies.fear) }}%</td>
+                            <td>{{ "%.1f"|format(test.emotion_accuracies.joy) }}%</td>
+                            <td>{{ "%.1f"|format(test.emotion_accuracies.neutral) }}%</td>
+                            <td>{{ "%.1f"|format(test.emotion_accuracies.sadness) }}%</td>
+                            <td>{{ "%.1f"|format(test.emotion_accuracies.surprise) }}%</td>
+                            <td>
+                                <button class="delete-btn" onclick="deleteTest({{ loop.index0 }})">Delete</button>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <div id="questions-tab" class="tab-content">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Test Taken</th>
+                            <th>Overall</th>
+                            <th>Anger (Correct/Total)</th>
+                            <th>Disgust (Correct/Total)</th>
+                            <th>Fear (Correct/Total)</th>
+                            <th>Joy (Correct/Total)</th>
+                            <th>Neutral (Correct/Total)</th>
+                            <th>Sadness (Correct/Total)</th>
+                            <th>Surprise (Correct/Total)</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for test in stats.history %}
+                        <tr>
+                            <td>{{ test.test_taken }}</td>
+                            <td>{{ test.correct_count }}/10</td>
+                            {% for emotion in ['anger', 'disgust', 'fear', 'joy', 'neutral', 'sadness', 'surprise'] %}
+                            <td>
+                                {% if test.emotion_stats[emotion]['total'] > 0 %}
+                                    {{ test.emotion_stats[emotion]['correct'] }}/{{ test.emotion_stats[emotion]['total'] }}
+                                {% else %}
+                                    0/0
+                                {% endif %}
+                            </td>
+                            {% endfor %}
+                            <td>
+                                <button class="delete-btn" onclick="deleteTest({{ loop.index0 }})">Delete</button>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="clear-all-container">
+                <button class="clear-all-btn" onclick="clearAllHistory()">Clear All History</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const emotions = ['anger', 'disgust', 'fear', 'joy', 'neutral', 'sadness', 'surprise'];
+        const stats = {{ stats|tojson }};
+        
+        let chart = null;
+
+        function initializeChart(type, data, labels) {
+            if (chart) {
+                chart.destroy();
+            }
+
+            const ctx = document.getElementById('accuracyChart').getContext('2d');
+            chart = new Chart(ctx, {
+                type: type,
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Average Accuracy (%)',
+                        data: data,
+                        backgroundColor: 'rgba(54, 162, 235, 0.2)',
+                        borderColor: 'rgba(54, 162, 235, 1)',
+                        borderWidth: 1,
+                        tension: 0.1 // Smooth lines for line chart
+                    }]
+                },
+                options: {
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 100,
+                            title: {
+                                display: true,
+                                text: 'Accuracy (%)'
+                            }
+                        }
+                    },
+                    plugins: {
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return `Accuracy: ${context.parsed.y.toFixed(1)}%`;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function applyFilters() {
+            const startDate = document.getElementById('startDate').value;
+            const endDate = document.getElementById('endDate').value;
+            const selectedEmotions = Array.from(document.querySelectorAll('input[name="emotions"]:checked'))
+                .map(cb => cb.value);
+
+            // If no filters are applied, show the original bar chart
+            if (!startDate && !endDate && selectedEmotions.length === 0) {
+                const defaultData = emotions.map(emotion => {
+                    let total = 0;
+                    let count = 0;
+                    stats.history.forEach(test => {
+                        if (test.emotion_stats[emotion].total > 0) {
+                            total += (test.emotion_stats[emotion].correct / test.emotion_stats[emotion].total) * 100;
+                            count++;
+                        }
+                    });
+                    return count > 0 ? total / count : 0;
+                });
+                initializeChart('bar', defaultData, emotions);
+                return;
+            }
+
+            // Filter data based on selected criteria
+            const filteredHistory = stats.history.filter(test => {
+                const testDate = new Date(test.test_taken);
+                const start = startDate ? new Date(startDate) : null;
+                const end = endDate ? new Date(endDate) : null;
+
+                return (!start || testDate >= start) && 
+                       (!end || testDate <= end);
+            });
+
+            // If emotions are selected, create a line chart
+            if (selectedEmotions.length > 0) {
+                const datasets = selectedEmotions.map(emotion => ({
+                    label: emotion,
+                    data: filteredHistory.map(test => test.emotion_accuracies[emotion]),
+                    borderColor: getRandomColor(),
+                    fill: false
+                }));
+
+                if (chart) chart.destroy();
+                const ctx = document.getElementById('accuracyChart').getContext('2d');
+                chart = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: filteredHistory.map(test => test.test_taken),
+                        datasets: datasets
+                    },
+                    options: {
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                max: 100,
+                                title: {
+                                    display: true,
+                                    text: 'Accuracy (%)'
+                                }
+                            }
+                        }
+                    }
+                });
+            } else {
+                // Show bar chart with filtered data
+                const data = emotions.map(emotion => {
+                    let total = 0;
+                    let count = 0;
+                    filteredHistory.forEach(test => {
+                        if (test.emotion_stats[emotion].total > 0) {
+                            total += (test.emotion_stats[emotion].correct / test.emotion_stats[emotion].total) * 100;
+                            count++;
+                        }
+                    });
+                    return count > 0 ? total / count : 0;
+                });
+                initializeChart('bar', data, emotions);
+            }
+        }
+
+        function getRandomColor() {
+            const letters = '0123456789ABCDEF';
+            let color = '#';
+            for (let i = 0; i < 6; i++) {
+                color += letters[Math.floor(Math.random() * 16)];
+            }
+            return color;
+        }
+
+        // Initialize the default chart on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            const defaultData = emotions.map(emotion => {
+                let total = 0;
+                let count = 0;
+                stats.history.forEach(test => {
+                    if (test.emotion_stats[emotion].total > 0) {
+                        total += (test.emotion_stats[emotion].correct / test.emotion_stats[emotion].total) * 100;
+                        count++;
+                    }
+                });
+                return count > 0 ? total / count : 0;
+            });
+            initializeChart('bar', defaultData, emotions);
+        });
+
+        function showTab(tabName) {
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            document.querySelectorAll('.tab-button').forEach(button => {
+                button.classList.remove('active');
+            });
+            
+            document.getElementById(`${tabName}-tab`).classList.add('active');
+            document.querySelector(`button[onclick="showTab('${tabName}')"]`).classList.add('active');
+        }
+
+        function deleteTest(index) {
+            if (confirm('Are you sure you want to delete this test record?')) {
+                fetch(`/delete_test/${index}`, {
+                    method: 'POST'
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        location.reload();
+                    }
+                });
+            }
+        }
+
+        function clearAllHistory() {
+            if (confirm('Are you sure you want to clear all test history? This action cannot be undone.')) {
+                fetch('/clear_all_history', {
+                    method: 'POST'
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        location.reload();
+                    }
+                });
+            }
+        }
+
+        function resetFilters() {
+            // Reset date inputs
+            document.getElementById('startDate').value = '';
+            document.getElementById('endDate').value = '';
+            
+            // Reset emotion checkboxes
+            document.querySelectorAll('input[name="emotions"]').forEach(checkbox => {
+                checkbox.checked = false;
+            });
+            
+            // Reset to default bar chart
+            const defaultData = emotions.map(emotion => {
+                let total = 0;
+                let count = 0;
+                stats.history.forEach(test => {
+                    if (test.emotion_stats[emotion].total > 0) {
+                        total += (test.emotion_stats[emotion].correct / test.emotion_stats[emotion].total) * 100;
+                        count++;
+                    }
+                });
+                return count > 0 ? total / count : 0;
+            });
+            initializeChart('bar', defaultData, emotions);
+        }
+    </script>
+</body>
+</html>

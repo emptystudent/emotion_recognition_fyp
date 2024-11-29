@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Emotion Recognition</title>
+    <style>
+        .container {
+            position: relative;
+            width: 100%;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header-section {
+            position: relative;
+            width: 100%;
+            text-align: center;
+            padding-top: 40px;
+            margin-bottom: 30px;
+        }
+
+        .back-button {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            padding: 10px 20px;
+            background-color: #dc3545;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+            font-weight: bold;
+            font-size: 16px;
+            width: fit-content;
+            height: fit-content;
+            line-height: 1.5;
+            text-align: center;
+            z-index: 1000;
+            box-shadow: none;
+            border: none;
+        }
+
+        .back-button:hover {
+            background-color: #c82333;
+            text-decoration: none;
+            color: white;
+        }
+
+        h1 {
+            margin: 0;
+            text-align: center;
+            font-size: 24px;
+            padding-top: 20px;
+        }
+
+        .options-container {
+            display: flex;
+            gap: 40px;
+            margin-bottom: 30px;
+            width: 100%;
+            justify-content: center;
+        }
+
+        .option-box {
+            padding: 20px;
+            border: 2px solid #ddd;
+            border-radius: 10px;
+            text-align: center;
+            width: 300px;
+        }
+
+        .button {
+            padding: 10px 20px;
+            font-size: 16px;
+            margin: 10px;
+            cursor: pointer;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+        }
+
+        .button:hover {
+            background-color: #45a049;
+        }
+
+        .content-layout {
+            display: flex;
+            gap: 30px;
+            margin-top: 20px;
+            width: 100%;
+            justify-content: center;
+            align-items: flex-start;
+        }
+
+        .display-container {
+            width: 500px;
+            height: 400px;
+            border: 3px solid #333;
+            border-radius: 10px;
+            overflow: hidden;
+            display: none;
+            background-color: #f8f9fa;
+        }
+
+        .display-container.webcam-active {
+            width: 800px;
+            height: 600px;
+        }
+
+        .results-container {
+            width: 500px;
+            min-height: 400px;
+            padding: 20px;
+            border: 3px solid #333;
+            border-radius: 10px;
+            background-color: #f8f9fa;
+            display: none;
+        }
+
+        .emotion-result {
+            display: flex;
+            align-items: center;
+            margin: 10px 0;
+            padding: 10px;
+            background-color: white;
+            border-radius: 5px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        .emotion-label {
+            width: 80px;
+            text-align: left;
+            padding-right: 10px;
+            font-weight: 500;
+        }
+
+        .progress-container {
+            flex-grow: 1;
+            margin: 0 15px;
+            background-color: #eee;
+            border-radius: 5px;
+            height: 20px;
+            position: relative;
+        }
+
+        .emotion-bar {
+            position: absolute;
+            left: 0;
+            height: 100%;
+            background-color: #4CAF50;
+            border-radius: 5px;
+            transition: width 0.3s ease;
+        }
+
+        .percentage {
+            width: 60px;
+            text-align: right;
+            padding-left: 10px;
+            font-weight: 500;
+        }
+
+        .content {
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header-section">
+            <a href="/" class="back-button">Back to Main Page</a>
+            <h1>Emotion Recognition</h1>
+        </div>
+        
+        <div class="options-container">
+            <div class="option-box">
+                <h3>Webcam Recognition</h3>
+                <button id="startCamera" class="button">Start Camera</button>
+            </div>
+            
+            <div class="option-box">
+                <h3>Image Upload</h3>
+                <input type="file" id="fileInput" accept="image/*" style="display: none;">
+                <button id="uploadButton" class="button">Upload Image</button>
+            </div>
+        </div>
+
+        <div class="content-layout">
+            <div class="display-container">
+                <img id="displayImage" style="width: 100%; height: 100%; object-fit: contain;">
+            </div>
+
+            <div class="results-container">
+                <h3>Emotion Analysis Results:</h3>
+                <div id="emotionResults"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const startCamera = document.getElementById('startCamera');
+        const uploadButton = document.getElementById('uploadButton');
+        const fileInput = document.getElementById('fileInput');
+        const displayContainer = document.querySelector('.display-container');
+        const displayImage = document.getElementById('displayImage');
+        const resultsContainer = document.querySelector('.results-container');
+        const emotionResults = document.getElementById('emotionResults');
+
+        startCamera.addEventListener('click', async () => {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+                stream.getTracks().forEach(track => track.stop());
+                displayContainer.style.display = 'block';
+                displayContainer.classList.add('webcam-active');
+                displayImage.src = "{{ url_for('video_feed') }}";
+                resultsContainer.style.display = 'none';
+            } catch (err) {
+                console.error('Error accessing camera:', err);
+                alert('Error: Please allow camera access to use this feature');
+            }
+        });
+
+        uploadButton.addEventListener('click', () => {
+            displayContainer.classList.remove('webcam-active');
+            fileInput.click();
+        });
+
+        fileInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                const formData = new FormData();
+                formData.append('image', file);
+
+                displayContainer.style.display = 'block';
+                displayImage.src = URL.createObjectURL(file);
+
+                fetch('/analyze_image', {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(response => response.json())
+                .then(data => {
+                    console.log('Received data:', data);
+                    if (data.error) {
+                        console.error('Error:', data.error);
+                        alert('Error analyzing image: ' + data.error);
+                    } else {
+                        resultsContainer.style.display = 'block';
+                        updateEmotionResults(data.emotions);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('Error analyzing image');
+                });
+            }
+        });
+
+        function updateEmotionResults(emotions) {
+            console.log('Updating results with:', emotions);
+            emotionResults.innerHTML = '';
+            Object.entries(emotions).forEach(([emotion, percentage]) => {
+                const resultDiv = document.createElement('div');
+                resultDiv.className = 'emotion-result';
+                resultDiv.innerHTML = `
+                    <span class="emotion-label">${emotion.charAt(0).toUpperCase() + emotion.slice(1)}</span>
+                    <div class="progress-container">
+                        <div class="emotion-bar" style="width: ${percentage}%"></div>
+                    </div>
+                    <span class="percentage">${percentage.toFixed(1)}%</span>
+                `;
+                emotionResults.appendChild(resultDiv);
+            });
+        }
+
+        function saveTestResults(results) {
+            fetch('/save_test_result', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(results)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    console.log('Test results saved successfully');
+                } else {
+                    console.error('Error saving test results:', data.error);
+                }
+            })
+            .catch(error => console.error('Error:', error));
+        }
+    </script>
+</body>
+</html>
