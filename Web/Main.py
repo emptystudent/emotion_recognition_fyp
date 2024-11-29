@@ -6,19 +6,21 @@ import os
 from datetime import datetime
 import cv2
 import numpy as np
-import requests
 from flask_cors import CORS
+from jamaibase import JamAI, protocol as p
 
 app = Flask(__name__)
 CORS(app)
 qna = QNA()
 emotion_recognition = EmotionRecognition()
 
-# Update base URL - remove /api suffix
-JAMAI_BASE_URL = "https://api.jamaibase.com"  
+# Update base URL and credentials
 JAMAI_API_KEY = "jamai_sk_09081aedfccde72a8cfa4bc4db0ff23fa5bd47406c885b77"
 PROJECT_ID = "proj_2e6b08f124289d82c1e430d3"
 AGENT_ID = "shunxin"
+
+# Initialize JamAI client
+jamai = JamAI(token=JAMAI_API_KEY, project_id=PROJECT_ID)
 
 @app.route('/')
 def index():
@@ -65,17 +67,12 @@ def save_quiz_results():
 @app.route('/dashboard')
 def dashboard():
     history = load_history()
-    # Transform the history data to include emotion_accuracies
     formatted_history = []
     for test in history:
-        emotion_accuracies = {}
-        for emotion in test['emotion_stats']:
-            stats = test['emotion_stats'][emotion]
-            if stats['total'] > 0:
-                accuracy = (stats['correct'] / stats['total']) * 100
-            else:
-                accuracy = 0
-            emotion_accuracies[emotion] = accuracy
+        emotion_accuracies = {
+            emotion: (stats['correct'] / stats['total'] * 100) if stats['total'] > 0 else 0
+            for emotion, stats in test['emotion_stats'].items()
+        }
 
         formatted_test = {
             'test_taken': test['test_taken'],
@@ -146,48 +143,25 @@ def chat():
             print("Error: Empty message received")
             return jsonify({'error': 'Empty message'}), 400
 
-        # JamAI API call
-        headers = {
-            'Authorization': f'Bearer {JAMAI_API_KEY}',
-            'Content-Type': 'application/json'
-        }
-        
-        # Updated payload structure
-        payload = {
-            'messages': [{
-                'role': 'user',
-                'content': user_message
-            }],
-            'projectId': PROJECT_ID,
-            'agentId': AGENT_ID,
-            'stream': False,
-            'temperature': 0.7,
-            'max_tokens': 1000
-        }
-        
-        print("Making JamAI API call...")
-        # Try different endpoint format
-        api_url = f"{JAMAI_BASE_URL}/chat"  # Simplified endpoint
-        print(f"API URL: {api_url}")  # Debug print
-        
-        response = requests.post(
-            api_url,
-            headers=headers,
-            json=payload
+        # Create a chat request using JamAI SDK
+        request = p.ChatRequest(
+            model="openai/gpt-4o-mini",  # You can adjust this model if needed
+            messages=[
+                p.ChatEntry.system("You are a helpful assistant."),
+                p.ChatEntry.user(user_message),
+            ],
+            temperature=0.7,
+            max_tokens=1000,
+            stream=False
         )
         
-        print(f"Response status: {response.status_code}")
-        print(f"Response content: {response.text}")
+        print("Making JamAI API call...")
+        # Generate the chat response
+        response = jamai.generate_chat_completions(request)
+        assistant_response = response.text
         
-        if response.status_code == 200:
-            result = response.json()
-            assistant_response = result.get('response', '')
-            print(f"Response: {assistant_response}")
-            return jsonify({'response': assistant_response})
-        else:
-            error_message = f"JamAI API Error: {response.text}"
-            print(error_message)
-            return jsonify({'error': error_message}), response.status_code
+        print(f"Response: {assistant_response}")
+        return jsonify({'response': assistant_response})
             
     except Exception as e:
         print(f"General Error: {str(e)}")
@@ -205,3 +179,4 @@ def save_history(history):
 
 if __name__ == '__main__':
     app.run(debug=True, host='127.0.0.1', port=5000)
+
