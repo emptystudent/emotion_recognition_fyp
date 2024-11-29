@@ -17,6 +17,7 @@ emotion_recognition = EmotionRecognition()
 # Update base URL and credentials
 JAMAI_API_KEY = "jamai_sk_09081aedfccde72a8cfa4bc4db0ff23fa5bd47406c885b77"
 PROJECT_ID = "proj_2e6b08f124289d82c1e430d3"
+CHAT_TABLE_ID = "chat-simple"  # Use the existing chat table ID
 
 # Initialize JamAI client
 jamai = JamAI(token=JAMAI_API_KEY, project_id=PROJECT_ID)
@@ -142,22 +143,20 @@ def chat():
             print("Error: Empty message received")
             return jsonify({'error': 'Empty message'}), 400
 
-        # Create a chat request using JamAI SDK
-        chat_request = p.ChatRequest(
-            model="openai/gpt-4o-mini",  # Adjust this model as needed
-            messages=[
-                p.ChatEntry.system("You are a helpful assistant."),
-                p.ChatEntry.user(user_message),
-            ],
-            temperature=0.7,
-            max_tokens=1000,
+        # Add user message to the existing chat table
+        row_add_request = p.RowAddRequest(
+            table_id=CHAT_TABLE_ID,
+            data=[{
+                "User": user_message
+            }],
             stream=False
         )
         
-        print("Making JamAI API call...")
-        # Generate the chat response
-        response = jamai.generate_chat_completions(chat_request)
-        assistant_response = response.text
+        print("Adding row to the chat table...")
+        completion = jamai.table.add_table_rows("chat", row_add_request)
+        
+        # Extract response from the assistant
+        assistant_response = completion.rows[0].columns["AI"].text if completion.rows else "No response generated."
         
         print(f"Response: {assistant_response}")
         return jsonify({'response': assistant_response})
@@ -178,4 +177,5 @@ def save_history(history):
 
 if __name__ == '__main__':
     app.run(debug=True, host='127.0.0.1', port=5000)
+
 
