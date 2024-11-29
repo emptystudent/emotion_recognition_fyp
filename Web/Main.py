@@ -131,35 +131,25 @@ def analyze_image():
 def report():
     return render_template('report.html')
 
-@app.route('/chat', methods=['POST'])
+@app.route('/chat', methods=['GET'])
 def chat():
-    print("Chat endpoint hit")
     try:
-        data = request.get_json()
-        user_message = data.get('message')
-        print(f"Received message: {user_message}")
+        # Fetch the existing rows from the chat table
+        rows = jamai.table.list_table_rows("chat", CHAT_TABLE_ID)
         
-        if not user_message:
-            print("Error: Empty message received")
-            return jsonify({'error': 'Empty message'}), 400
+        # Assuming you want the latest response from the assistant
+        if not rows.items:
+            return jsonify({'response': 'No previous chat found.'}), 404
+        
+        # Extracting the latest row
+        latest_row = rows.items[-1]
+        user_message = latest_row['User']['value']
+        assistant_response = latest_row['AI']['value']
 
-        # Add user message to the existing chat table
-        row_add_request = p.RowAddRequest(
-            table_id=CHAT_TABLE_ID,
-            data=[{
-                "User": user_message
-            }],
-            stream=False
-        )
-        
-        print("Adding row to the chat table...")
-        completion = jamai.table.add_table_rows("chat", row_add_request)
-        
-        # Extract response from the assistant
-        assistant_response = completion.rows[0].columns["AI"].text if completion.rows else "No response generated."
-        
-        print(f"Response: {assistant_response}")
-        return jsonify({'response': assistant_response})
+        return jsonify({
+            'user_message': user_message,
+            'response': assistant_response
+        })
             
     except Exception as e:
         print(f"General Error: {str(e)}")
