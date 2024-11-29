@@ -17,7 +17,6 @@ emotion_recognition = EmotionRecognition()
 # Update base URL and credentials
 JAMAI_API_KEY = "jamai_sk_09081aedfccde72a8cfa4bc4db0ff23fa5bd47406c885b77"
 PROJECT_ID = "proj_2e6b08f124289d82c1e430d3"
-AGENT_ID = "shunxin"
 
 # Initialize JamAI client
 jamai = JamAI(token=JAMAI_API_KEY, project_id=PROJECT_ID)
@@ -144,8 +143,8 @@ def chat():
             return jsonify({'error': 'Empty message'}), 400
 
         # Create a chat request using JamAI SDK
-        request = p.ChatRequest(
-            model="openai/gpt-4o-mini",  # You can adjust this model if needed
+        chat_request = p.ChatRequest(
+            model="openai/gpt-4o-mini",  # Adjust this model as needed
             messages=[
                 p.ChatEntry.system("You are a helpful assistant."),
                 p.ChatEntry.user(user_message),
@@ -157,7 +156,7 @@ def chat():
         
         print("Making JamAI API call...")
         # Generate the chat response
-        response = jamai.generate_chat_completions(request)
+        response = jamai.generate_chat_completions(chat_request)
         assistant_response = response.text
         
         print(f"Response: {assistant_response}")
